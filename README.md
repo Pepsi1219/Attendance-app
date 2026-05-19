@@ -1,110 +1,193 @@
-# Attendance Project — Supabase Edition
+# Attendance & Score System
 
-ระบบเช็คชื่อและกรอกคะแนนนักเรียน — Frontend (static HTML/JS) + Supabase backend
+A modern web app for elementary school attendance tracking and score recording, built with vanilla JavaScript and Supabase.
+
+> Originally built as a Google Apps Script tool, now migrated to a Supabase-backed static web app deployed on Vercel.
 
 ---
 
-## โครงสร้างโปรเจกต์
+## ✨ Features
+
+- 📋 **Attendance Check** — Mark students as Present / Absent / Activity (with date picker)
+- 📝 **Score Entry** — Record scores for Pre-Midterm / Midterm / Final
+- 🚫 **Activity Exclusion** — Students marked as "Activity" are automatically excluded from future attendance lists (with a "bring back" feature)
+- 📄 **PDF Reports** — Generate beautiful multi-page reports per class (cover + roster + scores + daily grid + statistics)
+- 📊 **Dashboard** — KPI cards + 4 charts (status pie, students per class, daily trend, average scores)
+- 🌗 **Dark / Light mode** — System-style theme toggle
+- 🌐 **Bilingual UI** — Thai / English toggle (UI text only; student data stays in original language)
+- 🔐 **Authentication** — Teachers sign in via Supabase Auth (email/password)
+- 📱 **Responsive** — Mobile-first design, scales beautifully on tablet and desktop
+
+---
+
+## 🗂️ Project Structure
 
 ```
 .
-├── index.html                # หน้าเว็บหลัก (login + app)
+├── index.html              # Main app entry point
+├── migrate.html            # One-time browser-based migration tool
+├── css/
+│   ├── style.css           # Main app styles (theming, glass cards, responsive)
+│   └── migrate.css         # Migration tool styles
+├── js/
+│   ├── app.js              # Main app logic (auth, attendance, scores, dashboard, PDF)
+│   └── migrate.js          # CSV → Supabase migration logic
 ├── supabase/
-│   └── schema.sql            # สร้างตาราง + RLS — รันใน Supabase SQL Editor
-├── scripts/
-│   ├── migrate.js            # script import ข้อมูลจาก CSV
-│   ├── package.json
-│   ├── .env.example
-│   └── (ใส่ P5.csv, P6.csv ที่นี่ก่อน migrate)
-├── Code.gs                   # (เก่า) Apps Script — ไม่ใช้แล้ว
-└── Index.old.html            # (เก่า) — ไม่ใช้แล้ว
+│   └── schema.sql          # Database schema (tables, indexes, RLS, grants)
+└── README.md
 ```
 
 ---
 
-## Step 1 — สร้างตารางใน Supabase
+## 🛠️ Tech Stack
 
-1. เปิด Supabase Dashboard → SQL Editor
-2. Copy เนื้อหาจาก `supabase/schema.sql` ทั้งหมด → วาง → กด **Run**
-3. ตรวจสอบที่ Table Editor ว่ามีตาราง `students`, `attendance`, `scores`
-
----
-
-## Step 2 — สร้างบัญชีครู (Auth)
-
-1. Supabase Dashboard → **Authentication → Users → Add user → Create new user**
-2. ใส่อีเมล + รหัสผ่าน ของครู (ติ๊ก **Auto Confirm User** ด้วย ไม่ต้องยืนยันอีเมล)
-3. ทำซ้ำสำหรับครูทุกคน
+| Layer | Technology |
+|-------|------------|
+| Frontend | Vanilla HTML / CSS / JavaScript (no build step) |
+| Backend | [Supabase](https://supabase.com) (PostgreSQL + Auth + REST API) |
+| Charts | [Chart.js 4](https://www.chartjs.org/) |
+| PDF | [jsPDF](https://github.com/parallax/jsPDF) + [html2canvas](https://html2canvas.hertzen.com/) |
+| CSV Parsing | [Papa Parse](https://www.papaparse.com/) (migration tool only) |
+| Hosting | [Vercel](https://vercel.com) (static site) |
+| Fonts | [Sarabun](https://fonts.google.com/specimen/Sarabun) (Thai-friendly) |
 
 ---
 
-## Step 3 — Migrate ข้อมูลนักเรียนจาก Google Sheets
+## 🚀 Setup
 
-### 3.1 Export Google Sheets เป็น CSV
-- เปิด Google Sheet → คลิก tab **P5** → File → Download → **Comma-separated values (.csv)**
-- ทำซ้ำกับ tab **P6**
-- ย้ายไฟล์ที่ได้ไปวางที่ `scripts/P5.csv` และ `scripts/P6.csv`
+### Prerequisites
+- A [Supabase](https://supabase.com) project (free tier works fine)
+- A modern browser
 
-### 3.2 ติดตั้ง dependencies
-```bash
-cd scripts
-npm install
+### 1. Create the database schema
+
+1. Go to **Supabase Dashboard → SQL Editor → New Query**
+2. Paste the entire contents of `supabase/schema.sql`
+3. Click **Run**
+4. Verify in **Table Editor** that `students`, `attendance`, and `scores` tables exist
+
+### 2. Create teacher accounts
+
+1. Go to **Authentication → Users → Add user → Create new user**
+2. Enter email + password
+3. **Important**: Tick **Auto Confirm User**
+4. Repeat for each teacher
+
+### 3. Configure the app
+
+Open `js/app.js` and update these constants near the top:
+
+```javascript
+const SCHOOL_NAME = 'Your School Name';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_xxxxxxxxxxxxx';
 ```
 
-### 3.3 ตั้งค่า env
-```bash
-cp .env.example .env
-```
-แล้วเปิด `.env` ใส่ **Service Role Key** (หาที่ Supabase Dashboard → Project Settings → API → `service_role` ใต้หัวข้อ "Project API keys")
+The anon key is safe to expose in client code — Row Level Security (RLS) policies enforce that only authenticated users can read/write.
 
-> ⚠️ Service Role Key bypass RLS — เก็บเป็นความลับ ห้าม commit / share
+### 4. Run locally
 
-### 3.4 รัน migration
-```bash
-npm run migrate
-```
+Open `index.html` in a browser. For development, use VS Code's **Live Server** extension or:
 
-จะเห็น output ประมาณนี้:
-```
-🚀 เริ่ม migration...
----- P5.csv ----
-📄 อ่าน P5.csv: 270 แถว
-   👥 students to upsert: 270
-   ✅ students imported
-   📅 พบคอลัมน์วันที่: 16 พ.ค. 69, 17 พ.ค. 69
-   📝 attendance rows: 540
-   ✅ attendance imported
-...
-🎉 เสร็จสิ้น!
-```
-
----
-
-## Step 4 — รัน Frontend (local dev)
-
-ใช้ VS Code Live Server เปิด `index.html` ได้เลย หรือ:
 ```bash
 npx serve .
 ```
 
-> หมายเหตุ: `google.script.run` ไม่ถูกใช้แล้ว — รัน local ก็เชื่อมกับ Supabase ได้จริง
+> Note: opening `index.html` directly via `file://` may break Supabase Auth — always serve over HTTP.
 
 ---
 
-## Step 5 — Deploy ขึ้น Vercel
+## 📥 Migrate Student Data
 
-1. Push โปรเจกต์ขึ้น GitHub
-2. ไปที่ [vercel.com](https://vercel.com) → New Project → Import จาก GitHub
-3. Vercel จะ detect ว่าเป็น static site อัตโนมัติ — กด **Deploy**
-4. เสร็จ! จะได้ URL เช่น `https://attendance-xxx.vercel.app`
+The repo includes a browser-based migration tool that imports students (and historical attendance) from CSV files.
 
-> ไม่ต้องใส่ environment variable เพราะ `SUPABASE_URL` และ **anon key** ปลอดภัยที่จะอยู่ใน frontend (ป้องกันด้วย RLS แล้ว)
+### CSV format
+Headers must match these Thai column names exactly:
+
+```
+ระดับ,ห้อง,รหัสประจำตัว,เลขที่,คำนำหน้า,ชื่อ,นามสกุล,ปีการศึกษา,[<date1>,<date2>,...]
+```
+
+The first 8 columns are required student fields. Any additional columns are treated as attendance dates (header = date label, cell value = `มา` / `ขาด` / `กิจกรรม`).
+
+### Steps
+1. Export your Google Sheets tabs as CSV (e.g., `P5.csv`, `P6.csv`)
+2. Open `migrate.html` via Live Server (HTTP, not `file://`)
+3. Sign in with your teacher account
+4. Select the CSV files (Ctrl+click for multiple)
+5. Click **Start Migration**
+6. Watch the log — `🎉 Done!` means success
+
+Re-running is safe: the tool uses **upsert** with `student_code` as the unique key.
 
 ---
 
-## หมายเหตุด้านความปลอดภัย
+## 🌐 Deploy to Vercel
 
-- **anon key** = public, ใส่ใน frontend ได้ (ป้องกันด้วย RLS)
-- **service_role key** = secret, ใช้แค่ใน script migrate.js ฝั่ง server เท่านั้น
-- RLS policy ปัจจุบัน: ผู้ใช้ที่ login แล้ว (authenticated) อ่าน/เขียน ได้ทุก row
-  - ถ้าต้องการแยกสิทธิ์ตามครู/ห้อง ค่อยปรับ policy ใน `schema.sql` ภายหลัง
+1. Push this repo to GitHub
+2. Go to [vercel.com](https://vercel.com) → **Add New → Project**
+3. Import your repository
+4. Settings:
+   - **Framework Preset**: Other
+   - **Build Command**: (leave blank)
+   - **Output Directory**: (leave blank)
+   - **Environment Variables**: none required
+5. Click **Deploy**
+
+Your app will be live at `https://<project>.vercel.app` in ~30 seconds.
+
+---
+
+## 🔒 Security Notes
+
+- **anon key** in `js/app.js`: safe to expose, protected by RLS policies
+- **service_role key**: never used in frontend; not needed for normal app operation
+- **RLS policies** (in `schema.sql`): all reads/writes require authentication
+- **CSV files** with student PII (`scripts/*.csv`): excluded via `.gitignore`
+
+If you need stricter access control (e.g., teachers can only see their own classes), extend the RLS policies in `schema.sql`.
+
+---
+
+## 🗄️ Database Schema
+
+```
+students          attendance              scores
+─────────         ──────────              ──────
+id (PK)           id (PK)                 id (PK)
+student_code (U)  student_id (FK)         student_id (FK)
+level             date                    title    (pre/mid/final)
+room              status                  score
+number            (มา/ขาด/กิจกรรม)
+prefix            UNIQUE(student_id,date) UNIQUE(student_id,title)
+first_name
+last_name
+year (พ.ศ.)
+in_activity (bool)
+```
+
+- Dates stored as ISO `YYYY-MM-DD` (Western/Christian Era)
+- Year stored as Thai Buddhist Era (พ.ศ.) — converted in UI based on language
+- `in_activity = TRUE` excludes student from future attendance lists
+
+---
+
+## 🧭 Term Filtering
+
+The Thai academic year runs:
+- **Term 1**: May – September
+- **Term 2**: November – March (of the following calendar year)
+
+The dashboard and PDF reports filter attendance records by these date ranges.
+
+---
+
+## 📝 License
+
+This project is provided as-is for educational use.
+
+---
+
+## 🙏 Credits
+
+Built collaboratively with [Claude Code](https://claude.com/claude-code).
