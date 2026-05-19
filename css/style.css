@@ -356,29 +356,47 @@
 
     /* ============================================================ RESPONSIVE ============================================================ */
 
-    /* ---- Mobile (< 640px): compact attendance card so name truncates and buttons stay visible ---- */
+    /* ---- Mobile (< 640px): force fit viewport + compact attendance card ---- */
     @media (max-width: 639px) {
+      /* บังคับให้ container ไม่กว้างเกิน parent (กัน edge case iOS Safari) */
+      .top-bar, .container {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      #page-record .student-grid {
+        width: 100%;
+        max-width: 100%;
+      }
       #page-record .student-card {
+        width: 100%;
+        max-width: 100%;
         padding: 10px 12px;
         gap: 10px;
-        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;           /* clip ใดๆ ภายในที่อาจล้น */
+        min-width: 0;
       }
       #page-record .student-num {
         width: 30px; height: 30px;
         font-size: 12px;
       }
       #page-record .student-name {
+        flex: 1 1 0;                /* basis 0 → ยอมหดเต็มที่ */
         font-size: 14px;
-        min-width: 0;        /* enable flexbox shrink to allow ellipsis */
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
-      #page-record .student-action { gap: 4px; }
+      #page-record .student-action {
+        flex-shrink: 0;             /* ปุ่มไม่ย่อ */
+        gap: 4px;
+      }
       #page-record .btn-status {
         padding: 6px 10px;
         font-size: 12px;
-        min-height: 32px;    /* touch-friendly */
+        min-height: 32px;
       }
       #page-record .score-input {
         width: 64px;
