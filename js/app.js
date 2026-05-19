@@ -407,15 +407,15 @@
     let html = '<div class="student-grid">';
     currentStudents.forEach(s => {
       html += `<div class="student-card">
-        <div class="student-num">${s.number}</div>
-        <div class="student-name">${s.name}</div>
+        <div class="student-num">${esc(s.number)}</div>
+        <div class="student-name">${esc(s.name)}</div>
         <div class="student-action">`;
       if (currentMode === 'attendance') {
         html += `<button class="btn-status" id="btn_present_${s.id}" onclick="setStatus(${s.id}, 'มา')">${t('present')}</button>
                  <button class="btn-status" id="btn_activity_${s.id}" onclick="setStatus(${s.id}, 'กิจกรรม')">${t('activity')}</button>`;
       } else {
         const v = existing[s.id] != null ? existing[s.id] : '';
-        html += `<input type="number" class="score-input" id="score_${s.id}" placeholder="${t('score_input')}" value="${v}">`;
+        html += `<input type="number" step="any" class="score-input" id="score_${s.id}" placeholder="${t('score_input')}" value="${esc(v)}">`;
       }
       html += `</div></div>`;
     });
@@ -523,10 +523,10 @@
         const name = (s.prefix || '') + s.first_name + ' ' + s.last_name;
         const meta = `${s.level}/${s.room} · #${s.number}`;
         html += `<div class="student-card">
-          <div class="student-num">${s.number}</div>
+          <div class="student-num">${esc(s.number)}</div>
           <div style="flex:1; min-width:0;">
-            <div class="student-name">${name}</div>
-            <div class="student-meta">${meta}</div>
+            <div class="student-name">${esc(name)}</div>
+            <div class="student-meta">${esc(meta)}</div>
           </div>
           <button class="btn-bringback" onclick="bringBack(${s.id})">${t('bring_back')}</button>
         </div>`;
@@ -614,6 +614,12 @@
   }
 
   function chunk(arr, n) { const out=[]; for (let i=0; i<arr.length; i+=n) out.push(arr.slice(i,i+n)); return out; }
+
+  // XSS escape — ใช้กับทุก user-generated content ที่ใส่ผ่าน innerHTML
+  function esc(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
 
   // ดึงข้อมูลทั้งหมดทีละ page (เลี่ยง Supabase default limit 1000)
   // buildQuery: () => สร้าง query builder ใหม่ทุกครั้งที่เรียก (เพราะ range/limit ไม่ควรซ้อน)
@@ -710,9 +716,9 @@
       const rows = batch.map(p => {
         const rate = p.total > 0 ? ((p.present / p.total) * 100).toFixed(1) : '-';
         return `<tr>
-          <td class="num">${p.number}</td>
-          <td>${(p.prefix||'') + p.first_name + ' ' + p.last_name}</td>
-          <td class="center">${p.student_code}</td>
+          <td class="num">${esc(p.number)}</td>
+          <td>${esc((p.prefix||'') + p.first_name + ' ' + p.last_name)}</td>
+          <td class="center">${esc(p.student_code)}</td>
           <td class="center">${p.present}</td>
           <td class="center">${p.absent}</td>
           <td class="center">${p.activity}</td>
@@ -747,8 +753,8 @@
         const ss = [p.scores.pre, p.scores.mid, p.scores.final].filter(v => v != null);
         const avg = ss.length > 0 ? (ss.reduce((a,b)=>a+Number(b),0) / ss.length).toFixed(2) : '-';
         return `<tr>
-          <td class="num">${p.number}</td>
-          <td>${(p.prefix||'') + p.first_name + ' ' + p.last_name}</td>
+          <td class="num">${esc(p.number)}</td>
+          <td>${esc((p.prefix||'') + p.first_name + ' ' + p.last_name)}</td>
           <td class="center">${p.scores.pre   ?? '-'}</td>
           <td class="center">${p.scores.mid   ?? '-'}</td>
           <td class="center">${p.scores.final ?? '-'}</td>
@@ -794,8 +800,8 @@
               return `<td class="cell"><span class="pill ${pill}">${sym}</span></td>`;
             }).join('');
             return `<tr>
-              <td class="num">${p.number}</td>
-              <td>${(p.prefix||'') + p.first_name + ' ' + p.last_name}</td>
+              <td class="num">${esc(p.number)}</td>
+              <td>${esc((p.prefix||'') + p.first_name + ' ' + p.last_name)}</td>
               ${cells}
             </tr>`;
           }).join('');
@@ -842,14 +848,14 @@
         <h3 style="font-size:14px; margin-bottom:8px; color:#1d1d1f;">${t('th_top_absent')}</h3>
         <table class="report-table">
           <thead><tr><th class="num">${t('th_no')}</th><th>${t('th_name')}</th><th class="center">${t('th_absent')}</th><th class="center">${t('th_present')}</th></tr></thead>
-          <tbody>${topAbsent.map(p => `<tr><td class="num">${p.number}</td><td>${(p.prefix||'')+p.first_name+' '+p.last_name}</td><td class="center">${p.absent}</td><td class="center">${p.present}</td></tr>`).join('')}</tbody>
+          <tbody>${topAbsent.map(p => `<tr><td class="num">${esc(p.number)}</td><td>${esc((p.prefix||'')+p.first_name+' '+p.last_name)}</td><td class="center">${p.absent}</td><td class="center">${p.present}</td></tr>`).join('')}</tbody>
         </table>
       </div>
       <div class="report-section">
         <h3 style="font-size:14px; margin-bottom:8px; color:#1d1d1f;">${t('th_best_attendance')}</h3>
         <table class="report-table">
           <thead><tr><th class="num">${t('th_no')}</th><th>${t('th_name')}</th><th class="center">${t('th_present')}</th><th class="center">${t('th_rate')}</th></tr></thead>
-          <tbody>${bestAtt.map(p => `<tr><td class="num">${p.number}</td><td>${(p.prefix||'')+p.first_name+' '+p.last_name}</td><td class="center">${p.present}</td><td class="center">${((p.present/p.total)*100).toFixed(1)}</td></tr>`).join('')}</tbody>
+          <tbody>${bestAtt.map(p => `<tr><td class="num">${esc(p.number)}</td><td>${esc((p.prefix||'')+p.first_name+' '+p.last_name)}</td><td class="center">${p.present}</td><td class="center">${((p.present/p.total)*100).toFixed(1)}</td></tr>`).join('')}</tbody>
         </table>
       </div>
     `;
