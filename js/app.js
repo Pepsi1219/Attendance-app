@@ -314,7 +314,8 @@
   }
 
   function updateUserInfo() {
-    document.getElementById('user-info').textContent = currentUser ? currentUser.email : '';
+    // ไม่แสดงอีเมล — เก็บ element ไว้เพื่อรักษา layout (flex: 1 ดันปุ่มไปขวา)
+    document.getElementById('user-info').textContent = '';
   }
 
   async function handleLogin(e) {
@@ -1022,7 +1023,7 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: textColor, font: { family: 'Sarabun' } } } },
+        plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { color: textColor, font: { family: 'Sarabun' } }, grid: { color: gridColor } },
           y: { ticks: { color: textColor, font: { family: 'Sarabun' } }, grid: { color: gridColor }, beginAtZero: true }
