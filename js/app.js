@@ -447,6 +447,49 @@
     }
   }
 
+  // ============================================================
+  // LINE NOTIFICATION (attendance mode only)
+  // ============================================================
+  async function sendLineNotification() {
+    // นับสถานะ
+    let present = 0, absent = 0, activity = 0;
+    currentStudents.forEach(s => {
+      const status = attendanceData[s.id] || 'ขาด';
+      if (status === 'มา') present++;
+      else if (status === 'ขาด') absent++;
+      else if (status === 'กิจกรรม') activity++;
+    });
+
+    const dateDisplay = formatDateForDisplay(currentRecordKey);
+    const yearShown = currentLang === 'th' ? currentYearTH : (currentYearTH - 543);
+    const yearLbl = currentLang === 'th' ? 'พ.ศ.' : 'CE';
+
+    const message =
+      `📋 เช็คชื่อ ${currentLevel}/${currentRoom}\n` +
+      `🗓 ${dateDisplay} (${yearLbl} ${yearShown})\n` +
+      `✓ มา: ${present} คน\n` +
+      `✗ ขาด: ${absent} คน\n` +
+      `● กิจกรรม: ${activity} คน\n` +
+      `รวม: ${currentStudents.length} คน`;
+
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('No session');
+
+    const res = await fetch('/api/notify-line', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error('notify-line ' + res.status + ': ' + err);
+    }
+  }
+
   async function saveData() {
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true; saveBtn.textContent = t('saving');
@@ -463,6 +506,8 @@
           const { error: uerr } = await sb.from('students').update({ in_activity: true }).in('id', activityIds);
           if (uerr) throw uerr;
         }
+        // Best-effort LINE notification (ไม่ block save success ถ้าส่งไม่สำเร็จ)
+        sendLineNotification().catch(err => console.warn('LINE notify failed:', err));
       } else {
         const rows = [];
         currentStudents.forEach(s => {

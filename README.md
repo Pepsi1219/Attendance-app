@@ -131,10 +131,77 @@ Re-running is safe: the tool uses **upsert** with `student_code` as the unique k
    - **Framework Preset**: Other
    - **Build Command**: (leave blank)
    - **Output Directory**: (leave blank)
-   - **Environment Variables**: none required
+   - **Environment Variables**: (see LINE Notification section below)
 5. Click **Deploy**
 
 Your app will be live at `https://<project>.vercel.app` in ~30 seconds.
+
+---
+
+## 📲 LINE Notification Setup
+
+When attendance is saved, the app sends a summary to a LINE group automatically.
+
+### Architecture
+```
+[Web App] → save attendance
+    ↓
+[/api/notify-line]  ← Vercel Serverless Function
+    ↓ LINE Channel Access Token (env var, never exposed to client)
+[LINE Messaging API]
+    ↓ push message
+[LINE Group]
+```
+
+### Step 1 — Create LINE Official Account & Messaging API Channel
+
+1. Go to https://manager.line.biz → **Create** a new account (Free plan)
+2. Go to https://developers.line.biz/console → **Create Provider** → **Create Messaging API channel**
+3. In the channel settings → **Messaging API** tab → **Issue Channel Access Token** → copy it
+
+### Step 2 — Find your LINE Group ID
+
+1. In the channel settings → **Messaging API** tab → set Webhook URL:
+   ```
+   https://<your-vercel-app>.vercel.app/api/line-webhook
+   ```
+   Enable **Use webhook: ON**
+
+2. Add your LINE bot to the group (invite from LINE app)
+
+3. Type any message in the group → the bot replies with:
+   ```
+   🔑 Source type: group
+   🆔 ID: C1234567890abcdef...
+   ```
+
+4. Copy the Group ID
+
+### Step 3 — Add Environment Variables in Vercel
+
+Go to **Vercel → Project → Settings → Environment Variables** and add:
+
+| Name | Value |
+|------|-------|
+| `LINE_CHANNEL_ACCESS_TOKEN` | `(token from Step 1)` |
+| `LINE_GROUP_ID` | `C1234567890abcdef...` |
+
+Then **Redeploy** (Vercel → Deployments → Redeploy).
+
+### Message Format
+
+Every time attendance is saved, the group receives:
+
+```
+📋 เช็คชื่อ ป.5/1
+🗓 19/05/2569 (พ.ศ. 2569)
+✓ มา: 45 คน
+✗ ขาด: 3 คน
+● กิจกรรม: 6 คน
+รวม: 54 คน
+```
+
+> **Note:** Notification failures are silent — save always succeeds even if LINE is unreachable.
 
 ---
 
